@@ -373,3 +373,19 @@ fn list_commands_filter_by_a_command_id_matches_ids() {
     assert!(ids.contains(&"sketch.delete"), "{ids:?}");
     assert!(ids.iter().all(|id| id.contains("sketch.delete")), "{} commands matched: {ids:?}", ids.len());
 }
+
+/// Compatibility shims (docs/compatibility.md): a design saved before the rename (legacy
+/// extension and format tag) opens through MCP, and the legacy resource URIs still read.
+#[test]
+fn legacy_design_files_and_resource_uris() {
+    let mut s = server();
+    let saved = String::from_utf8(solidcraft_engine::io::write_design(&solidcraft_engine::doc::Document::default())).unwrap();
+    assert!(saved.contains("\"solidcraft/"), "{saved}");
+    let legacy = saved.replace("\"solidcraft/", "\"solvecraft/");
+    let path = std::env::temp_dir().join(format!("solidcraft-mcp-legacy-{}.solvecraft", std::process::id()));
+    std::fs::write(&path, legacy).unwrap();
+    tool(&mut s, "open", json!({"path": path.to_string_lossy()}));
+    let _ = std::fs::remove_file(&path);
+    let d = call(&mut s, 1, "resources/read", json!({"uri": "solvecraft://design"}));
+    assert!(d["result"]["contents"][0]["text"].as_str().unwrap().contains("timeline"));
+}

@@ -157,8 +157,10 @@ impl Server {
             "resources/read" => {
                 let uri = params.get("uri").and_then(Value::as_str).unwrap_or("");
                 let v = match uri {
-                    "solidcraft://design" => self.backend.call("document.inspect", json!({"measure": true})),
-                    "solidcraft://commands" => self.backend.call("engine.commands", json!({})),
+                    // The solvecraft:// URIs are what earlier releases listed (compatibility shim,
+                    // docs/compatibility.md); clients that saved them still read the resource.
+                    "solidcraft://design" | "solvecraft://design" => self.backend.call("document.inspect", json!({"measure": true})),
+                    "solidcraft://commands" | "solvecraft://commands" => self.backend.call("engine.commands", json!({})),
                     _ => return Err((RESOURCE_NOT_FOUND, format!("unknown resource `{uri}`"))),
                 }
                 .map_err(|e| (INTERNAL_ERROR, e))?;

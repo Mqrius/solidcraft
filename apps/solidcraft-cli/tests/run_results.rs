@@ -95,3 +95,21 @@ fn results_without_script_still_fail() {
     assert_eq!(output.status.code(), Some(1));
     assert!(String::from_utf8_lossy(&output.stderr).contains("--results needs a script"));
 }
+
+/// Compatibility shim (docs/compatibility.md): a design saved before the rename, with the
+/// legacy extension and format tag, still opens; re-saving writes the current tag.
+#[test]
+fn legacy_extension_and_format_tag_still_open() {
+    let dir = Scratch::new();
+    let saved = dir.0.join("box.solidcraft");
+    json_output(cli().arg("run").arg(dir.script()).arg("--save").arg(&saved).output().unwrap());
+    let text = std::fs::read_to_string(&saved).unwrap();
+    assert!(text.contains("\"solidcraft/"), "new designs carry the current tag");
+    let legacy = dir.0.join("old.solvecraft");
+    std::fs::write(&legacy, text.replace("\"solidcraft/", "\"solvecraft/")).unwrap();
+    assert_eq!(body_count(&legacy), 1);
+    let resaved = dir.0.join("resaved.solidcraft");
+    json_output(cli().args(["run", "--in"]).arg(&legacy).arg(dir.script()).arg("--save").arg(&resaved).output().unwrap());
+    assert_eq!(body_count(&resaved), 2);
+    assert!(std::fs::read_to_string(&resaved).unwrap().contains("\"solidcraft/"));
+}

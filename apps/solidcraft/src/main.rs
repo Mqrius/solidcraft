@@ -99,10 +99,40 @@ fn services() -> Services {
     }
 }
 
+/// The per-user settings folder: eframe's storage (`app.ron`) and the anti-aliasing preference.
+fn settings_dir() -> Option<std::path::PathBuf> {
+    eframe::storage_dir("SolidCraft")
+}
+
 /// The anti-aliasing preference, kept next to eframe's storage (it is needed before the
 /// window opens).
 fn graphics_path() -> Option<std::path::PathBuf> {
-    eframe::storage_dir("SolidCraft").map(|d| d.join("graphics.json"))
+    settings_dir().map(|d| d.join("graphics.json"))
+}
+
+/// Compatibility shim (docs/compatibility.md): on the first launch after the rename, copy the
+/// settings of earlier releases into the new folder. They kept `graphics.json` (and, on Linux
+/// and macOS, the recovery folder) under the old product name, and eframe's `app.ron` under the
+/// window's app id. The old folders are never changed.
+fn adopt_legacy_settings() {
+    let (Some(current), Some(legacy)) = (settings_dir(), eframe::storage_dir("SolveCraft")) else { return };
+    let legacy_eframe = eframe::storage_dir(APP_ID);
+    if let Err(e) = adopt_settings(&current, &legacy, legacy_eframe.as_deref()) {
+        log::warn!("settings: could not copy the previous release's settings into {}: {e}", current.display());
+    }
+}
+
+fn adopt_settings(current: &std::path::Path, legacy: &std::path::Path, legacy_eframe: Option<&std::path::Path>) -> std::io::Result<()> {
+    let fresh = !current.exists();
+    solidcraft_engine::io::adopt_legacy_dir(current, legacy)?;
+    if let Some(old) = legacy_eframe.map(|d| d.join("app.ron")).filter(|p| fresh && p.is_file()) {
+        std::fs::create_dir_all(current)?;
+        let new = current.join("app.ron");
+        if !new.exists() {
+            std::fs::copy(old, new)?;
+        }
+    }
+    Ok(())
 }
 
 /// Anti-aliasing samples from Preferences (4 when unset).
@@ -140,10 +170,15 @@ fn app_viewport() -> Result<egui::ViewportBuilder, eframe::Error> {
         .with_fullsize_content_view(true)
         .with_titlebar_shown(false)
         .with_title_shown(false)
-        .with_app_id("ai.storyteller.solvecraft"))
+        .with_app_id(APP_ID))
 }
 
+/// The window's app id: it names the desktop entry, so it stays the packages' reverse-DNS id,
+/// which is kept from before the rename (compatibility shim, docs/compatibility.md).
+const APP_ID: &str = "ai.storyteller.solvecraft";
+
 fn main() -> eframe::Result {
+    adopt_legacy_settings();
     let samples = msaa();
     let mut control_port: Option<u16> = solidcraft_engine::geom::env::var("CONTROL_PORT").and_then(|p| p.parse().ok());
     let mut files = Vec::new();
@@ -169,6 +204,8 @@ fn main() -> eframe::Result {
         depth_buffer: DEPTH_BITS,
         stencil_buffer: STENCIL_BITS,
         multisampling: samples,
+        // Kept with the other settings, not in a folder named after the app id.
+        persistence_path: settings_dir().map(|d| d.join("app.ron")),
         ..Default::default()
     };
     #[cfg(all(unix, not(target_os = "macos")))]
@@ -286,12 +323,34 @@ mod icon_tests {
         let icon = viewport.icon.expect("running window must have an icon");
         assert_eq!((icon.width, icon.height), (64, 64));
         assert_eq!(icon.rgba, super::app_icon::rgba(64).expect("original mark"));
-        assert_eq!(viewport.app_id.as_deref(), Some("ai.storyteller.solvecraft"));
+        assert_eq!(viewport.app_id.as_deref(), Some(super::APP_ID));
     }
 }
 
 #[cfg(test)]
 mod msaa_tests {
+    #[test]
+    fn first_launch_adopts_the_previous_release_settings() {
+        let d = std::env::temp_dir().join(format!("solidcraft-adopt-settings-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let (current, legacy, legacy_eframe) = (d.join("solidcraft"), d.join("solvecraft"), d.join("ai.storyteller.solvecraft"));
+        std::fs::create_dir_all(&legacy).unwrap();
+        std::fs::create_dir_all(&legacy_eframe).unwrap();
+        std::fs::write(legacy.join("graphics.json"), r#"{"msaa":8}"#).unwrap();
+        std::fs::write(legacy_eframe.join("app.ron"), "(prefs)").unwrap();
+        super::adopt_settings(&current, &legacy, Some(&legacy_eframe)).unwrap();
+        assert_eq!(std::fs::read_to_string(current.join("graphics.json")).unwrap(), r#"{"msaa":8}"#);
+        assert_eq!(std::fs::read_to_string(current.join("app.ron")).unwrap(), "(prefs)");
+        assert!(legacy.join("graphics.json").is_file() && legacy_eframe.join("app.ron").is_file());
+        // Later launches leave the current settings alone.
+        std::fs::write(current.join("app.ron"), "(mine)").unwrap();
+        std::fs::remove_file(current.join("graphics.json")).unwrap();
+        super::adopt_settings(&current, &legacy, Some(&legacy_eframe)).unwrap();
+        assert_eq!(std::fs::read_to_string(current.join("app.ron")).unwrap(), "(mine)");
+        assert!(!current.join("graphics.json").exists());
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
     #[test]
     fn saved_multisampling_uses_the_selected_backend_policy() {
         use eframe::wgpu::Backend;
