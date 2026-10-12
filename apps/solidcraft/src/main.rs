@@ -56,7 +56,6 @@ impl eframe::App for App {
     }
 }
 
-
 fn services() -> Services {
     Services {
         pick_open: Some(Box::new(|| {

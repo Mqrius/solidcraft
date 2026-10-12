@@ -370,7 +370,6 @@ mod web {
         }
     }
 
-
     fn query() -> String {
         web_sys::window().and_then(|w| w.location().search().ok()).unwrap_or_default()
     }
