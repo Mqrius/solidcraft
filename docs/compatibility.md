@@ -1,8 +1,8 @@
 # Compatibility with the SolveCraft name
 
 SolidCraft was first called SolveCraft, and builds up to 0.4 kept that name in their
-identifiers (binaries, crates, file extension, folders) after the displayed name changed. Since 0.5.0 the product uses the SolidCraft name
-everywhere: crates `solidcraft-*`, binaries `solidcraft` and `solidcraft-cli`, `.solidcraft`
+identifiers after the displayed name changed. 0.5.0 renamed the binaries, release assets and
+packages; the release after it renames everything else: crates `solidcraft-*`, binaries `solidcraft` and `solidcraft-cli`, `.solidcraft`
 designs, the `"format": "solidcraft/N"` tag, `SOLIDCRAFT_*` environment variables, settings
 and recovery folders, the MCP server name, docs, CI and packaging.
 
@@ -25,17 +25,20 @@ New designs are saved as `.solidcraft`. Files with the old extension still open 
 | Linux / FreeBSD / Flatpak | `packaging/linux/ai.storyteller.solvecraft.mime.xml`: `*.solvecraft` glob and the `application/x-solvecraft` alias |
 
 Recent-files entries that point at a `.solvecraft` file keep working: they are plain paths and
-open through the same detection. Tests: the legacy-extension tests in `crates/io` and the CLI
-test that opens a `.solvecraft` copy of a corpus design.
+open through the same detection. The browser app also lists designs it stored under the old
+extension, and keyboard-shortcut files exported as `solvecraft-shortcuts/1` still import
+(`crates/ui-egui/src/toolbar_custom.rs`). Tests: `crates/io` (`Format::from_name`,
+`is_design_path`), `legacy_extension_and_format_tag_still_open` (CLI, `run_results.rs`) and
+`legacy_design_files_and_resource_uris` (MCP `open`).
 
 ## 2. The `solvecraft/N` format tag
 
-Designs record their format as `"format": "solidcraft/N"`. Files saved by builds up to 0.4 say
+Designs record their format as `"format": "solidcraft/N"`. Files saved by builds up to 0.5 say
 `"format": "solvecraft/N"`; `crates/doc/src/format.rs` (`version_of`) reads both prefixes and
 upgrades them as usual (the file is re-tagged `solidcraft/N` when saved).
 
-Not backward-compatible: builds up to 0.4 don't know the new tag and refuse files saved by
-0.5.0 or later. Test: `version_of` accepts both prefixes; legacy-tagged designs load and are
+Not backward-compatible: builds up to 0.5 don't know the new tag and refuse files saved by
+later builds. Test: `version_of` accepts both prefixes; legacy-tagged designs load and are
 re-tagged on save.
 
 ## 3. `SOLVECRAFT_*` environment variables
@@ -59,17 +62,26 @@ New folders use the SolidCraft name:
 On first launch, if the new folder doesn't exist but the old one (`solvecraft` / `SolveCraft`)
 does, it is **copied** to the new location; the old folder is never deleted or changed. The
 window and UI state that eframe kept under `ai.storyteller.solvecraft` is copied the same way.
-The thumbnail cache is not migrated; it is rebuilt. The copy helper lives in `solidcraft_io`
-and is used by the desktop app and `solidcraft_engine::recovery`. Tests: copy when only the
-old folder exists, no copy when the new one exists, the old folder is left intact.
+Autosaves copied from the old folder (`<id>.solvecraft`) are listed and recovered like new ones.
+The preferences key in eframe's storage is `solidcraft.prefs`; `solvecraft.prefs` is read when
+it is missing (desktop and browser, `solidcraft_ui_egui::prefs::stored`). The browser app also
+reads files and the autosave it kept under the old names in local storage and OPFS
+(`apps/solidcraft-web/src/files.rs`). A 3DxWare profile the driver made for the old executable
+name is read until it makes a new one (`apps/solidcraft/src/space_mouse.rs`).
+The thumbnail cache is not migrated; it is rebuilt. The copy helper is
+`solidcraft_io::adopt_legacy_dir`, used by the desktop app (`adopt_legacy_settings`) and
+`solidcraft_engine::recovery::default_dir`. Tests: `legacy_dir` (copy once, never overwrite,
+old folder intact), `first_launch_adopts_the_previous_release_settings`,
+`autosave_from_a_legacy_folder_is_listed_and_loads`, `recovery_dirs_and_their_legacy_names`,
+`stored_prefs_fall_back_to_the_legacy_key`.
 
 ## 5. `solvecraft-cli` alias
 
-A tiny `solvecraft-cli` binary (built from `apps/solidcraft-cli`) ships in every package for at
-least one release (0.5.x). It prints a one-line deprecation note to stderr and runs the
+A tiny `solvecraft-cli` binary (`apps/solidcraft-cli/src/alias.rs`) ships in every package for
+at least one release (since 0.5.0). It prints a one-line deprecation note to stderr and runs the
 `solidcraft-cli` next to it with the same arguments, stdin/stdout and exit code, so scripts
-and MCP client configs that call `solvecraft-cli` keep working. Test: the alias forwards
-`--version` and prints the note on stderr only (stdout stays clean for MCP).
+and MCP client configs that call `solvecraft-cli` keep working. Test: `apps/solidcraft-cli/tests/legacy_alias.rs` (forwards `--version` and the exit status;
+the note goes to stderr only, so stdout stays clean for MCP).
 
 There is no alias for the desktop binary: launchers, file associations and Start-menu entries
 installed by the packages point at `solidcraft`.
@@ -89,7 +101,9 @@ keeps working (through the alias above). New setups use:
 claude mcp add solidcraft -- solidcraft-cli mcp
 ```
 
-Switch before the alias is removed.
+Switch before the alias is removed. Resources are listed as `solidcraft://design` and
+`solidcraft://commands`; the old `solvecraft://` URIs still read (`crates/mcp/src/server.rs`,
+test `legacy_design_files_and_resource_uris`).
 
 ## Package IDs
 
