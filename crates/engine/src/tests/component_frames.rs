@@ -47,3 +47,32 @@ fn moved_component_picks_and_frames() {
     run(&mut s, "solid.fillet", json!({"edges": [[25, ib.max.y, 0]], "radius": 1}));
     assert!(vol(&mut s, "ArmBody") < v0 - 1.0, "the instance's pick reached the definition");
 }
+
+/// An extrude in a moved component, made from a sketch of another component (here the root), is
+/// built where the sketch is shown: the sketch is seen through both placements, as a sketch on
+/// that component's face already is. Before, its plane was read as if it were in the feature's
+/// own component, so the join landed turned along with the moved component.
+#[test]
+fn extrude_in_a_moved_component_from_a_root_sketch() {
+    let mut s = Session::default();
+    run(&mut s, "sketch.create", json!({"plane": "XY"}));
+    run(&mut s, "sketch.rectangle.two_point", json!({"p0": [-40, -5], "p1": [0, 5]}));
+    run(&mut s, "sketch.finish", json!({}));
+    run(&mut s, "solid.extrude", json!({"distance": 10, "body_name": "Jaw"}));
+    let made = run(&mut s, "component.from_bodies", json!({"bodies": ["Jaw"]}));
+    let jaw = made["components"][0]["component"].as_u64().unwrap();
+    // Turned half a turn about Z: the jaw now lies along +X (x 0..40, y -5..5).
+    run(&mut s, "occurrence.move", json!({"occurrence": "Jaw:1", "axis": [0, 0, 1], "angle": "180 deg", "origin": [0, 0, 0]}));
+    run(&mut s, "component.activate", json!({"component": 0}));
+    // A root sketch: a tab on the jaw's +Y side, x 30..40, y 5..7 in the world.
+    run(&mut s, "sketch.create", json!({"plane": "XY", "name": "Tab"}));
+    run(&mut s, "sketch.rectangle.two_point", json!({"p0": [30, 5], "p1": [40, 7]}));
+    run(&mut s, "sketch.finish", json!({}));
+    run(&mut s, "component.activate", json!({"component": jaw}));
+    run(&mut s, "solid.extrude", json!({"sketch": "Tab", "distance": 10, "operation": "join", "targets": ["Jaw"]}));
+    let b = s.world_state().body("Jaw").unwrap().mesh().bounds();
+    let near = |a: f64, e: f64| (a - e).abs() < 1e-6;
+    assert!(near(b.min.x, 0.0) && near(b.max.x, 40.0) && near(b.min.y, -5.0) && near(b.max.y, 7.0), "{b:?}");
+    let v = run(&mut s, "inspect.measure", json!({"bodies": ["Jaw"]}))["total"]["volume_mm3"].as_f64().unwrap();
+    assert!(rel(v, 4000.0 + 200.0) < 1e-6, "{v}");
+}
