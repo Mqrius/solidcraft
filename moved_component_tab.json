@@ -1,0 +1,14 @@
+{"commands": [
+  {"command": "sketch.create", "params": {"plane": "XY"}},
+  {"command": "sketch.rectangle.two_point", "params": {"p0": [-40, -5], "p1": [0, 5]}},
+  {"command": "sketch.finish", "params": {}},
+  {"command": "solid.extrude", "params": {"distance": 10, "body_name": "Jaw"}},
+  {"command": "component.from_bodies", "params": {"bodies": ["Jaw"]}},
+  {"command": "occurrence.move", "params": {"occurrence": "Jaw:1", "axis": [0, 0, 1], "angle": "180 deg", "origin": [0, 0, 0]}},
+  {"command": "component.activate", "params": {"component": 0}},
+  {"command": "sketch.create", "params": {"plane": "XY", "name": "Tab"}},
+  {"command": "sketch.rectangle.two_point", "params": {"p0": [30, 5], "p1": [40, 7]}},
+  {"command": "sketch.finish", "params": {}},
+  {"command": "component.activate", "params": {"component": "Jaw"}},
+  {"command": "solid.extrude", "params": {"sketch": "Tab", "distance": 10, "operation": "join", "targets": ["Jaw"]}}
+]}
