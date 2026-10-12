@@ -101,7 +101,10 @@ fn extrude_to_a_face_in_a_moved_component() {
     run(&mut s, "solid.extrude", json!({"sketch": "Tab", "to": [20, 0, 15], "operation": "join", "targets": ["Jaw"]}));
     let b = s.world_state().body("Jaw").unwrap().mesh().bounds();
     let near = |a: f64, e: f64| (a - e).abs() < 1e-6;
-    assert!(near(b.min.x, 0.0) && near(b.max.x, 40.0) && near(b.min.y, -5.0) && near(b.max.y, 7.0) && near(b.min.z, 0.0) && near(b.max.z, 15.0), "{b:?}");
+    assert!(
+        near(b.min.x, 0.0) && near(b.max.x, 40.0) && near(b.min.y, -5.0) && near(b.max.y, 7.0) && near(b.min.z, 0.0) && near(b.max.z, 15.0),
+        "{b:?}"
+    );
     let v = run(&mut s, "inspect.measure", json!({"bodies": ["Jaw"]}))["total"]["volume_mm3"].as_f64().unwrap();
     assert!(rel(v, 4000.0 + 10.0 * 2.0 * 15.0) < 1e-6, "{v}");
 }
