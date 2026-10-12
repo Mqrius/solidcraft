@@ -43,7 +43,7 @@ fn handshake_and_tools_list() {
     let init =
         call(&mut s, 1, "initialize", json!({"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "t", "version": "0"}}));
     assert_eq!(init["result"]["protocolVersion"], "2025-03-26");
-    assert_eq!(init["result"]["serverInfo"]["name"], "solvecraft");
+    assert_eq!(init["result"]["serverInfo"]["name"], "solidcraft");
     assert!(init["result"]["capabilities"]["tools"].is_object());
     assert!(init["result"]["instructions"].as_str().unwrap().contains("headless"));
     // An unknown version gets ours.
@@ -84,9 +84,9 @@ fn handshake_and_tools_list() {
 
     let res = call(&mut s, 5, "resources/list", json!({}));
     assert_eq!(res["result"]["resources"].as_array().unwrap().len(), 2);
-    let d = call(&mut s, 6, "resources/read", json!({"uri": "solvecraft://design"}));
+    let d = call(&mut s, 6, "resources/read", json!({"uri": "solidcraft://design"}));
     assert!(d["result"]["contents"][0]["text"].as_str().unwrap().contains("timeline"));
-    assert_eq!(call(&mut s, 7, "resources/read", json!({"uri": "solvecraft://nope"}))["error"]["code"], -32002);
+    assert_eq!(call(&mut s, 7, "resources/read", json!({"uri": "solidcraft://nope"}))["error"]["code"], -32002);
     assert_eq!(call(&mut s, 8, "nope/nope", json!({}))["error"]["code"], -32601);
 }
 
@@ -141,7 +141,7 @@ fn agent_builds_box_fillet_hole() {
     assert!(img["data"].as_str().unwrap().starts_with("iVBORw0KGgo"), "not a PNG");
 
     // Export, save, start over, open.
-    let dir = std::env::temp_dir().join(format!("solvecraft-mcp-test-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("solidcraft-mcp-test-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let step = dir.join("part.step");
     tool(&mut s, "export", json!({"path": step.to_string_lossy()}));
@@ -152,7 +152,7 @@ fn agent_builds_box_fillet_hole() {
     let shot = dir.join("shot.png");
     tool(&mut s, "screenshot", json!({"path": shot.to_string_lossy(), "width": 64, "height": 64}));
     assert!(std::fs::metadata(&shot).unwrap().len() > 100);
-    let design = dir.join("part.solvecraft");
+    let design = dir.join("part.solidcraft");
     tool(&mut s, "save", json!({"path": design.to_string_lossy()}));
     tool(&mut s, "new_design", json!({"name": "Empty"}));
     assert_eq!(tool(&mut s, "measure", json!({}))["body_count"], 0);

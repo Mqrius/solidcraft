@@ -1,0 +1,18 @@
+[package]
+name = "solidcraft-cli"
+description = "SolidCraft headless CLI: run command scripts, measure, export, render snapshots, replay oracle recipes"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "solidcraft-cli"
+path = "src/main.rs"
+
+[dependencies]
+solidcraft-engine = { workspace = true }
+solidcraft-mcp = { workspace = true }
+serde_json = { workspace = true }
