@@ -1,0 +1,8 @@
+{"commands": [
+  {"command": "sketch.create", "params": {"plane": {"origin": [98, 0, 0], "x_dir": [0, 1, 0], "y_dir": [0, 0, 1]}, "name": "Cut"}},
+  {"command": "sketch.line", "params": {"points": [[-0.0021656943, 0], [-0.0021656943, 10]], "connect": false}},
+  {"command": "sketch.line", "params": {"points": [[-0.0021656943, 3.5], [-1.5021656943, 5], [-0.0021656943, 6.5]], "connect": false}},
+  {"command": "sketch.arc.center_point", "params": {"center": [-2.2941098626, 5], "start": [-0.0021656943, 3.5], "end": [-0.0021656943, 6.5], "connect": false}},
+  {"command": "sketch.finish", "params": {}},
+  {"command": "solid.extrude", "params": {"sketch": "Cut", "profiles": [{"point": [-0.5, 5]}, {"point": [0.2, 5]}], "through_all": true, "direction": "negative", "operation": "cut", "name": "C"}}
+]}
