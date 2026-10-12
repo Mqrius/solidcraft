@@ -1,0 +1,8 @@
+{"commands": [
+  {"command": "solid.box", "params": {"corner": [-98, -5, 0], "length": 101, "width": 10, "height": 3, "body_name": "Plate"}},
+  {"command": "solid.cylinder", "params": {"base": [0, 0, 0], "axis": [0, 0, 1], "radius": 2.75, "height": 10, "body_name": "Post"}},
+  {"command": "sketch.create", "params": {"plane": {"origin": [-98, 0, 0], "x_dir": [0, 1, 0], "y_dir": [0, 0, 1]}, "name": "End"}},
+  {"command": "sketch.rectangle.two_point", "params": {"p0": [-1.5, 4], "p1": [0, 7]}},
+  {"command": "sketch.finish", "params": {}},
+  {"command": "solid.extrude", "params": {"sketch": "End", "to": [-2.75, 0, 5], "operation": "new", "body_name": "Ridge"}}
+]}
