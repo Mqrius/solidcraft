@@ -96,7 +96,6 @@ fn join_extrude_from_a_chamfered_top_face() {
     }
 }
 
-/// A join that bridges two bodies makes them one body, not an overlap of the first and the second.
 #[test]
 fn a_body_cut_in_pieces_twice_gets_pieces_of_their_own_names() {
     let mut s = Session::default();
@@ -111,6 +110,7 @@ fn a_body_cut_in_pieces_twice_gets_pieces_of_their_own_names() {
     assert!(names.contains(&"Bar (2)".to_string()), "{names:?}");
 }
 
+/// A join that bridges two bodies makes them one body, not an overlap of the first and the second.
 #[test]
 fn join_bridging_two_bodies_merges_them() {
     let mut s = Session::default();
